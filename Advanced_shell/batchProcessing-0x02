@@ -1,26 +1,38 @@
 #!/bin/bash
 
-# Create directory to store Pokémon data
+# Create a folder for the data
 mkdir -p pokemon_data
+touch errors.txt
 
-# List of Pokémon to fetch
+# List of Pokémon
 pokemon_list=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
 
-# Loop through each Pokémon
-for pokemon in "${pokemon_list[@]}"
-do
+# Loop through Pokémon list
+for pokemon in "${pokemon_list[@]}"; do
   echo "Fetching data for $pokemon..."
-  
-  # Fetch and save the data
-  curl -s -o "pokemon_data/${pokemon}.json" "https://pokeapi.co/api/v2/pokemon/$pokemon"
-  
-  # Check if it worked
-  if [[ $? -eq 0 ]]; then
-    echo "Saved data to pokemon_data/${pokemon}.json"
-  else
-    echo "Failed to fetch data for $pokemon"
+
+  success=false
+
+  # Try up to 3 times
+  for attempt in {1..3}; do
+    curl -s -o "pokemon_data/${pokemon}.json" "https://pokeapi.co/api/v2/pokemon/$pokemon"
+
+    if [[ $? -eq 0 && -s "pokemon_data/${pokemon}.json" ]]; then
+      echo "Saved data to pokemon_data/${pokemon}.json"
+      success=true
+      break
+    else
+      echo "Attempt $attempt failed for $pokemon."
+      sleep 1  # wait before trying again
+    fi
+  done
+
+  # If not successful after 3 tries
+  if [[ $success = false ]]; then
+    echo "Failed to fetch $pokemon after 3 attempts" | tee -a errors.txt
+    rm -f "pokemon_data/${pokemon}.json"  # remove broken file
   fi
-  
-  # Wait 1 second to avoid being rate-limited
-  sleep 1
+
+  sleep 1  # delay between Pokémon to avoid rate-limiting
 done
+
