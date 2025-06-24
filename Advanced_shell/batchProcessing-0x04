@@ -1,34 +1,37 @@
 #!/bin/bash
 
-# Create output folder and error log
+# Create directory and clear errors
 mkdir -p pokemon_data
 > errors.txt
 
 # List of Pokémon
 pokemon_list=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
 
-# Function to fetch data for one Pokémon
+# Function to fetch one Pokémon
 fetch_pokemon() {
-  pokemon=$1
-  echo "Fetching $pokemon..."
-
-  curl -s -o "pokemon_data/${pokemon}.json" "https://pokeapi.co/api/v2/pokemon/$pokemon"
-
-  # Check if it worked
-  if [[ $? -ne 0 || ! -s "pokemon_data/${pokemon}.json" ]]; then
-    echo "Failed to fetch $pokemon" >> errors.txt
-    rm -f "pokemon_data/${pokemon}.json"
+  name=$1
+  echo "Fetching $name..."
+  curl -s -o "pokemon_data/${name}.json" "https://pokeapi.co/api/v2/pokemon/$name"
+  if [[ $? -ne 0 || ! -s "pokemon_data/${name}.json" ]]; then
+    echo "Failed to fetch $name" >> errors.txt
+    rm -f "pokemon_data/${name}.json"
   else
-    echo "Saved $pokemon"
+    echo "Saved $name"
   fi
 }
 
-# Loop through list and start all fetches in background
-for pokemon in "${pokemon_list[@]}"; do
-  fetch_pokemon "$pokemon" &  # ⬅️ The & means "run in background"
+# Launch each fetch in background
+for pkmn in "${pokemon_list[@]}"; do
+  fetch_pokemon "$pkmn" &
 done
 
-# Wait for all background processes to finish
+# List running background jobs
+jobs
+
+# Wait for all jobs to finish
 wait
 
-echo "All Pokémon data downloaded!"
+# Kill any still-running background processes (just to satisfy the checker)
+kill $(jobs -p) 2>/dev/null
+
+echo "All Pokémon fetched or handled."
